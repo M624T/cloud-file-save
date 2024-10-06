@@ -27,26 +27,34 @@ def main():
         # Agar xabar / belgisi bilan boshlangan bo'lsa, funksiyani yakunlash
         if event.raw_text.startswith('/'):
             return
-        
-        incoming_message_words = (
-            event.raw_text.lower().split()
-        )  # Xabarni kichik harflarga o'zgartirib, bo'shliqlar bo'yicha ajratish
+
+        # Faqat matnli xabarlarni qayta ishlash
+        if not event.message.text:
+            return
+
+        # Xabarni kichik harflarga o'zgartirib, bo'shliqlar bo'yicha ajratish
+        incoming_message_words = event.message.text.lower().split()
         keywords = [file[2] for file in database.get_all_files()]
 
         # Kalit so'z topilganligini aniqlash uchun flag
         keyword_found = False
 
         for keyword in keywords:
-            if (
-                keyword in incoming_message_words
-            ):  # Kalit so'zni to'liq so'z sifatida tekshirish
+            if keyword in incoming_message_words:  # Kalit so'zni to'liq so'z sifatida tekshirish
                 await file_handler.handle_keyword(event, keyword)
                 keyword_found = True
                 break
 
         # Agar kalit so'z topilmasa, foydalanuvchiga xabar yuborish
         if not keyword_found:
-            await event.reply("Bunday kalit so'z mavjud emas.")
+            # Faqatgina foydalanuvchiga javob berish kerak bo'lsa, javob yuborish
+            if should_reply_to_user(event):
+                await event.reply("Bunday kalit so'z mavjud emas.")
+
+    def should_reply_to_user(event):
+        # Bu yerda foydalanuvchiga javob berish kerak yoki yo'qligini aniqlash uchun shartlarni qo'shishingiz mumkin
+        # Masalan, faqatgina shaxsiy suhbatlarda javob berish:
+        return event.is_private
 
     client.on(events.NewMessage(pattern="/kickadmin"))(admin.delete_admin_handler)
     client.on(events.NewMessage(pattern="/listfiles"))(file_handler.list_files_handler)
